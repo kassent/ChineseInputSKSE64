@@ -19,20 +19,17 @@
     <Filter Include="imgui">
       <UniqueIdentifier>{c6e3bd0c-d899-4dea-9e21-5b1726d4e250}</UniqueIdentifier>
     </Filter>
-    <Filter Include="polym">
-      <UniqueIdentifier>{a89116cb-1314-452a-bd47-64c28fad3d82}</UniqueIdentifier>
+    <Filter Include="Hooks">
+      <UniqueIdentifier>{defdc121-166c-43a6-8f15-7b3920a88c38}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hooks\include">
+      <UniqueIdentifier>{cd419c3b-c037-4a4c-bdd7-58fa1b8ef8e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hooks\src">
+      <UniqueIdentifier>{4304b8ae-45ec-4b28-9d85-fb626b236f5e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="D3D11.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="HookUtil.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="imgui\imgui.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
@@ -45,41 +42,41 @@
     <ClCompile Include="imgui\imgui_widgets.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="imgui\examples\imgui_impl_dx11.cpp">
-      <Filter>imgui</Filter>
+    <ClCompile Include="ConfigLoader.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="imgui\examples\imgui_impl_win32.cpp">
-      <Filter>imgui</Filter>
+    <ClCompile Include="GameTypes.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="imgui\examples\dx11.cpp">
-      <Filter>imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="InputManager.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="RimeManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="polym\Msg.cpp">
-      <Filter>polym</Filter>
-    </ClCompile>
-    <ClCompile Include="polym\Queue.cpp">
-      <Filter>polym</Filter>
-    </ClCompile>
-    <ClCompile Include="polym\Test.cpp">
-      <Filter>polym</Filter>
-    </ClCompile>
-    <ClCompile Include="ConfigLoader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Utilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Hook_DX11.cpp">
+      <Filter>Hooks\src</Filter>
+    </ClCompile>
+    <ClCompile Include="Hook_GameInput.cpp">
+      <Filter>Hooks\src</Filter>
+    </ClCompile>
+    <ClCompile Include="Hook_Misc.cpp">
+      <Filter>Hooks\src</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\dx11\dx11.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\dx11\imgui_impl_dx11.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\dx11\imgui_impl_win32.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="polym\README.md">
-      <Filter>polym</Filter>
-    </None>
     <None Include="exports.def">
       <Filter>Resource Files</Filter>
     </None>
@@ -87,9 +84,6 @@
   <ItemGroup>
     <ClInclude Include="rime\include\rime_api.h">
       <Filter>rime</Filter>
-    </ClInclude>
-    <ClInclude Include="HookUtil.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="imgui\imconfig.h">
       <Filter>imgui</Filter>
@@ -100,56 +94,41 @@
     <ClInclude Include="imgui\imgui_internal.h">
       <Filter>imgui</Filter>
     </ClInclude>
-    <ClInclude Include="imgui\examples\imgui_impl_dx11.h">
-      <Filter>imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="imgui\examples\imgui_impl_win32.h">
-      <Filter>imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="D3D11.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="InputManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="KeyCode.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="RimeManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="polym\Msg.hpp">
-      <Filter>polym</Filter>
-    </ClInclude>
-    <ClInclude Include="polym\Queue.hpp">
-      <Filter>polym</Filter>
-    </ClInclude>
-    <ClInclude Include="polym\Tester.hpp">
-      <Filter>polym</Filter>
-    </ClInclude>
-    <ClInclude Include="X11\keysym.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="X11\keysymdef.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GameTypes.h">
+    <ClInclude Include="versiondb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ConfigLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DXScanCode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GameTypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RimeManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Utilities.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GFxEvent.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Hook_DX11.h">
+      <Filter>Hooks\include</Filter>
+    </ClInclude>
+    <ClInclude Include="Hook_GameInput.h">
+      <Filter>Hooks\include</Filter>
+    </ClInclude>
+    <ClInclude Include="Hook_Misc.h">
+      <Filter>Hooks\include</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\dx11\imgui_impl_dx11.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\dx11\imgui_impl_win32.h">
+      <Filter>imgui</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="versiondb.h">
-      <Filter>Header Files</Filter>
+      <Filter>Resource Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1,8 +1,31 @@
 #include "Utilities.h"
 #include <boost/dll/runtime_symbol_info.hpp>
+#include <shlobj.h>
+#include <memory>
+#include <string>
 namespace rime
 {
-	const std::string & GetProfileDirectory()
+
+	const std::string& GetLogDirectory()
+	{
+		std::unique_ptr<char[]> myDocumentsPath(new char[MAX_PATH]);
+		//char	myDocumentsPath[MAX_PATH];
+		assert(SUCCEEDED(SHGetFolderPath(NULL, CSIDL_MYDOCUMENTS, NULL, SHGFP_TYPE_CURRENT, myDocumentsPath.get())));
+		static std::string s_logDir = std::string(myDocumentsPath.get()) + "\\My Games\\Skyrim Special Edition\\SKSE\\ChineseInput\\";
+		return s_logDir;
+	}
+
+	std::string GetUserDataDirectory()
+	{
+		//std::unique_ptr<char[]> myDocumentsPath(new char[MAX_PATH]);
+		////char	myDocumentsPath[MAX_PATH];
+		//ASSERT(SUCCEEDED(SHGetFolderPath(NULL, CSIDL_MYDOCUMENTS, NULL, SHGFP_TYPE_CURRENT, myDocumentsPath.get())));
+		//static std::string s_logDir = std::string(myDocumentsPath.get()) + "\\My Games\\Skyrim Special Edition\\SKSE\\ChineseInput\\";
+		auto logDir = GetLogDirectory();
+		return logDir + "UserData\\";
+	}
+
+	const std::string& GetProfileDirectory()
 	{
 		static std::string s_profileDirectory;
 		if (s_profileDirectory.empty()) {
@@ -11,7 +34,7 @@ namespace rime
 				s_profileDirectory += "\\";
 			}
 			catch (std::bad_alloc & ex) {
-
+				_MESSAGE(ex.what());
 			}
 		}
 		return s_profileDirectory;
@@ -26,7 +49,7 @@ namespace rime
 			std::string	profileDirectory = GetProfileDirectory();
 			if (!profileDirectory.empty())
 			{
-				s_configPath = profileDirectory + "ChineseInput.ini";
+				s_configPath = profileDirectory + "config.ini";
 
 				_MESSAGE("config path = %s", s_configPath.c_str());
 			}
@@ -60,5 +83,19 @@ namespace rime
 			return false;
 
 		return (sscanf_s(data.c_str(), "%u", dataOut) == 1);
+	}
+
+	void SetConfigOption(const char* section, const char* key, const char* dataIn) 
+	{
+		const std::string& configPath = GetConfigPath();
+		if (!configPath.empty()) 
+		{
+			WritePrivateProfileString(section, key, dataIn, configPath.c_str());
+		}		
+	}
+
+	void SetConfigOption_UInt32(const char* section, const char* key, UInt32 dataIn)
+	{
+		SetConfigOption(section, key, std::to_string(dataIn).c_str());
 	}
 }

@@ -13,6 +13,87 @@ using MsgUID = unsigned long long;
  * Msg represents a simple message that doesn't have any payload data.
  * Msg ID identifies the type of the message. Msg ID can be queried with getMsgId().
  */
+enum class MessageType {
+    kMessageType_Char,
+    kMessageType_Option,
+    kMessageType_Command,
+    kMessageType_Invalid
+};
+class AbstractMessage 
+{
+public:
+    AbstractMessage(MessageType a_messageType) : messageType_(a_messageType) { }
+    virtual ~AbstractMessage() = default;
+    AbstractMessage(const AbstractMessage&) = delete;
+    AbstractMessage& operator=(const AbstractMessage&) = delete;
+    MessageType type() const { return messageType_; }
+    operator MessageType() { return messageType_; }
+private:
+    MessageType     messageType_ = MessageType::kMessageType_Invalid;
+};
+
+class RimeCharMessage : public AbstractMessage
+{
+public:
+    enum {
+        kInvalidChar = -1
+    };
+    RimeCharMessage(UInt32 a_asciiCode) : AbstractMessage(MessageType::kMessageType_Char), asciiCode(a_asciiCode) { }
+    virtual ~RimeCharMessage() = default;
+    RimeCharMessage(const RimeCharMessage&) = delete;
+    RimeCharMessage& operator=(const RimeCharMessage&) = delete;
+public:
+    UInt32			 asciiCode;
+};
+
+class RimeCommandMessage : public AbstractMessage {
+public:
+    enum {
+        kCommandType_Invalid,
+        kCommandType_ClearComposition,
+        kCommandType_CommitCompositon,
+        kCommandType_SwitchAsciiMode,
+        kCommandType_SwitchFullShape,
+        kCommandType_SwitchSimplification,
+        kCommandType_ExitLoop
+    };
+    RimeCommandMessage(UInt32 a_command) : AbstractMessage(MessageType::kMessageType_Command), command(a_command) { }
+
+    virtual ~RimeCommandMessage() = default;
+    RimeCommandMessage(const RimeCommandMessage&) = delete;
+    RimeCommandMessage& operator=(const RimeCommandMessage&) = delete;
+public:
+    UInt32			command;
+};
+
+
+class RimeCommandMessage : public RimeMessage {
+public:
+    enum {
+        kCommandType_Invalid,
+        kCommandType_ClearComposition,
+        kCommandType_CommitCompositon,
+        kCommandType_SwitchAsciiMode,
+        kCommandType_SwitchFullShape,
+        kCommandType_SwitchSimplification,
+        kCommandType_ExitLoop
+    };
+    RimeCommandMessage(UInt32 command_) : RimeMessage(kMessageType_Command), command(command_) { }
+
+    virtual ~RimeCommandMessage() = default;
+    RimeCommandMessage(const RimeCommandMessage&) = delete;
+    RimeCommandMessage& operator=(const RimeCommandMessage&) = delete;
+
+    virtual std::unique_ptr<Msg> move() override {
+        return std::unique_ptr<Msg>(new RimeCommandMessage(std::exchange(command, kCommandType_Invalid)));
+    }
+private:
+    RimeCommandMessage(RimeCommandMessage&&) = default;
+    RimeCommandMessage& operator=(RimeCommandMessage&&) = default;
+public:
+    UInt32				command;
+};
+
 class Msg
 {
 public:

@@ -22,7 +22,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{3828D45B-18F1-443F-BC06-F991FB9D9CFD}</ProjectGuid>
     <RootNamespace>ChineseInput</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -47,7 +47,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -103,21 +103,22 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>E:\boost_1_64_0;$(SolutionDir);$(SolutionDir)\..;$(ProjectDir)imgui\;$(ProjectDir)X11\;$(SolutionDir)CommonLibSSE-master\include\</AdditionalIncludeDirectories>
-      <ForcedIncludeFiles>common/IPrefix.h</ForcedIncludeFiles>
+      <AdditionalIncludeDirectories>E:\boost_1_72_0;$(SolutionDir);$(SolutionDir)\..;$(ProjectDir)imgui\;$(ProjectDir)X11\;$(SolutionDir)CommonLibSSE\include\;$(ProjectDir)rime\include\</AdditionalIncludeDirectories>
+      <ForcedIncludeFiles>ForceInclude.h;SKSE/Logger.h</ForcedIncludeFiles>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <PreprocessorDefinitions>_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDLL;IMGUI_IMPL_WIN32_DISABLE_GAMEPAD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>true</WholeProgramOptimization>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>exports.def</ModuleDefinitionFile>
-      <AdditionalLibraryDirectories>$(ProjectDir)rime/lib;E:/boost_1_64_0/stage/lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)rime/lib;E:\boost_1_72_0\lib64-msvc-14.2</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
@@ -126,26 +127,27 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ConfigLoader.cpp" />
-    <ClCompile Include="D3D11.cpp" />
-    <ClCompile Include="HookUtil.cpp" />
-    <ClCompile Include="imgui\examples\dx11.cpp" />
-    <ClCompile Include="imgui\examples\imgui_impl_dx11.cpp" />
-    <ClCompile Include="imgui\examples\imgui_impl_win32.cpp" />
+    <ClCompile Include="GameTypes.cpp" />
+    <ClCompile Include="Hook_DX11.cpp" />
+    <ClCompile Include="Hook_GameInput.cpp" />
+    <ClCompile Include="Hook_Misc.cpp" />
+    <ClCompile Include="imgui\dx11\dx11.cpp" />
+    <ClCompile Include="imgui\dx11\imgui_impl_dx11.cpp" />
+    <ClCompile Include="imgui\dx11\imgui_impl_win32.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
     <ClCompile Include="imgui\imgui_demo.cpp" />
     <ClCompile Include="imgui\imgui_draw.cpp" />
     <ClCompile Include="imgui\imgui_widgets.cpp" />
-    <ClCompile Include="InputManager.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="polym\Msg.cpp" />
-    <ClCompile Include="polym\Queue.cpp" />
-    <ClCompile Include="polym\Test.cpp" />
     <ClCompile Include="RimeManager.cpp" />
     <ClCompile Include="Utilities.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\common\common_vc14.vcxproj">
       <Project>{472e19ab-def0-42df-819b-18722e8dc822}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\CommonLibSSE\CommonLibSSE.vcxproj">
+      <Project>{c1af9204-ee2d-421b-b11e-1d70d8acc11f}</Project>
     </ProjectReference>
     <ProjectReference Include="..\skse64\skse64.vcxproj">
       <Project>{7028b79c-06e3-4d9a-b38c-1dc3680b1bdb}</Project>
@@ -156,31 +158,24 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="exports.def" />
-    <None Include="polym\README.md" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConfigLoader.h" />
-    <ClInclude Include="D3D11.h" />
+    <ClInclude Include="DXScanCode.h" />
     <ClInclude Include="GameTypes.h" />
-    <ClInclude Include="GFxEvent.h" />
-    <ClInclude Include="HookUtil.h" />
-    <ClInclude Include="imgui\examples\imgui_impl_dx11.h" />
-    <ClInclude Include="imgui\examples\imgui_impl_win32.h" />
+    <ClInclude Include="Hook_DX11.h" />
+    <ClInclude Include="Hook_GameInput.h" />
+    <ClInclude Include="Hook_Misc.h" />
+    <ClInclude Include="imgui\dx11\imgui_impl_dx11.h" />
+    <ClInclude Include="imgui\dx11\imgui_impl_win32.h" />
     <ClInclude Include="imgui\imconfig.h" />
     <ClInclude Include="imgui\imgui.h" />
     <ClInclude Include="imgui\imgui_internal.h" />
-    <ClInclude Include="InputManager.h" />
-    <ClInclude Include="KeyCode.h" />
-    <ClInclude Include="polym\Msg.hpp" />
-    <ClInclude Include="polym\Queue.hpp" />
-    <ClInclude Include="polym\Tester.hpp" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="RimeManager.h" />
     <ClInclude Include="rime\include\rime_api.h" />
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="versiondb.h" />
-    <ClInclude Include="X11\keysym.h" />
-    <ClInclude Include="X11\keysymdef.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ChineseInput.rc" />

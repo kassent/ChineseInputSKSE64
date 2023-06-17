@@ -1,20 +1,20 @@
+#include "RimeManager.h"
+
 #include <string>
 #include <codecvt>
 #include <thread>
 #include <ShlObj.h>
 #include <boost/format.hpp>
+#include <RE/ControlMap.h>
 
-//#include <boost/dll/runtime_symbol_info.hpp>
-
-#include "RimeManager.h"
-#include "InputManager.h"
-#include "rime/include/rime_api.h"
-#include "skse64/PluginAPI.h"
-#include "KeyCode.h"
+#include "Hook_GameInput.h"
+#include "rime_api.h"
+#include "DXScanCode.h"
 #include "Utilities.h"
 
 using namespace rime;
-
+using RE::CharEvent;
+//using RE::GFxCharEvent;
 
 decltype(rime_get_api) * dll_rime_get_api = nullptr;
 
@@ -22,8 +22,13 @@ using RimeIndicator = RimeManager::RimeIndicator;
 
 static std::wstring utf8string2wstring(const std::string& str)
 {
-	static std::wstring_convert< std::codecvt_utf8<wchar_t> > strCnv;
-	return strCnv.from_bytes(str);
+	int len = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, NULL, 0);
+	if (!len)
+		return std::wstring();
+	std::unique_ptr<wchar_t[]> wchar_buf(new wchar_t[len]);
+	MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, wchar_buf.get(), len);
+	wchar_buf[len - 1] = L'\0';
+	return wchar_buf.get();
 }
 
 static void query_status(RimeStatus *status, RimeIndicator & indicator) {
@@ -133,14 +138,34 @@ static void on_message(void* context_object,
 	_MESSAGE("message: [%08X] [%s] %s", session_id, message_type, message_value);
 }
 
-RimeManager::RimeManager() : m_composing_flag(false), m_unicode_buffer(0x20)
+
+CommonMessageQueue::CommonMessageQueue()
+	: queue_(), queueMutex_(), queueCond_()
 {
-	
+
 }
 
-void RimeManager::PostCommand(RimeMessage && msg)
+void CommonMessageQueue::Push(ContainerEntryType && entry)
 {
-	m_command_queue.put(std::move(msg));
+	std::lock_guard<std::mutex> lock(queueMutex_);
+	if (queue_.size() < MAX_QUEUE_SIZE)
+		queue_.push(std::forward<ContainerEntryType>(entry));
+	queueCond_.notify_one();
+}
+
+CommonMessageQueue::ContainerEntryType CommonMessageQueue::Pop()
+{
+	std::unique_lock<std::mutex> lock(queueMutex_);
+	queueCond_.wait(lock, [this] {return !queue_.empty(); });
+	auto entry = std::move(queue_.front());
+	queue_.pop();
+	return entry;
+}
+
+
+RimeManager::RimeManager() : m_is_ready(false), m_unicode_buf(UNICODE_BUFFER_SIZE)
+{
+
 }
 
 
@@ -178,8 +203,8 @@ void RimeManager::StopRimeService()
 void RimeManager::SendUnicodeMessage(UInt32 charCode)
 {
 	if (IsRimeEnabled()) {
-		m_unicode_buffer.push_front(charCode);
-		SendBSUIScaleformData(UIStringHolder::GetSingleton()->topMenu, &m_unicode_buffer[0]); //UI线程读取消息，不会获取GFxEvent指针所有权。
+		m_unicode_buf.push_front(charCode);
+		UI::SendBSUIScaleformData(RE::InterfaceStrings::GetSingleton()->topMenu, &m_unicode_buf[0]); //UI线程读取消息，不会获取GFxEvent指针所有权。
 	}
 }
 
@@ -192,10 +217,10 @@ void RimeManager::RunRimeService()
 	traits.app_name = "rime.skyrimIME";
 	traits.shared_data_dir = (profile_path + "SharedData").c_str();
 
-	char	myDocumentsPath[MAX_PATH];
-	ASSERT(SUCCEEDED(SHGetFolderPath(NULL, CSIDL_MYDOCUMENTS, NULL, SHGFP_TYPE_CURRENT, myDocumentsPath)));
-	std::string userProfilePath = std::string(myDocumentsPath) + "\\My Games\\Skyrim Special Edition\\SKSE\\ChineseInput\\UserData";
-	traits.user_data_dir = userProfilePath.c_str();
+	//char	myDocumentsPath[MAX_PATH];
+	//ASSERT(SUCCEEDED(SHGetFolderPath(NULL, CSIDL_MYDOCUMENTS, NULL, SHGFP_TYPE_CURRENT, myDocumentsPath)));
+	std::string userProfileDir = GetUserDataDirectory();
+	traits.user_data_dir = userProfileDir.c_str();
 	rime->setup(&traits);
 
 	rime->set_notification_handler(&on_message, NULL);
@@ -212,21 +237,20 @@ void RimeManager::RunRimeService()
 		_ERROR("Error creating rime session.");
 		return;
 	}
-
 	//rime->set_option(session_id, "zh_simp", True);
+	m_is_ready = true;
 
-
-	for (auto message_ptr = m_command_queue.get(); message_ptr; message_ptr = m_command_queue.get()) { //bad cast exception
-		auto * rime_message_ptr = dynamic_cast<RimeMessage*>(message_ptr.get());
+	for (auto message_ptr = m_command_queue.Pop(); message_ptr; message_ptr = m_command_queue.Pop()) { //bad cast exception
+		auto * rime_message_ptr = dynamic_cast<AbstractMessage*>(message_ptr.get());
 		if (rime_message_ptr) {
-			switch (rime_message_ptr->GetType())
+			switch (rime_message_ptr->type())
 			{
-			case RimeMessage::kMessageType_Char:
+			case MessageType::kMessageType_Char:
 			{
 				auto * char_message_ptr = dynamic_cast<RimeCharMessage*>(rime_message_ptr);
 				if (char_message_ptr) {
 					if (rime->process_key(session_id, char_message_ptr->asciiCode, 0)) {
-						std::unique_lock<std::shared_mutex> lock(m_rw_mutex);
+						std::unique_lock<std::shared_mutex> lock(m_indicator_mutex);
 						m_indicator.Clear();
 						query_rime(session_id, m_indicator);
 						auto & commitStr = m_indicator.commit;
@@ -240,7 +264,7 @@ void RimeManager::RunRimeService()
 								//MenuControls::GetSingleton()->ProcessCommonInputEvent(&charEvent);
 							}
 						}
-						m_composing_flag = m_indicator.IsComposing();
+						//m_composing_flag = m_indicator.IsComposing();
 					}
 					else {
 						UInt32 charCode = char_message_ptr->asciiCode & 0xFF; //去除部分特殊控制字符的mask.
@@ -255,7 +279,7 @@ void RimeManager::RunRimeService()
 				}
 			}
 			break;
-			case RimeMessage::kMessageType_Command:
+			case MessageType::kMessageType_Command:
 			{
 				auto * cmd_message_ptr = dynamic_cast<RimeCommandMessage*>(rime_message_ptr);
 				if (cmd_message_ptr) {
@@ -264,16 +288,16 @@ void RimeManager::RunRimeService()
 					case RimeCommandMessage::kCommandType_ClearComposition:
 					{
 						rime->clear_composition(session_id);
-						std::unique_lock<std::shared_mutex> lock(m_rw_mutex);
+						std::unique_lock<std::shared_mutex> lock(m_indicator_mutex);
 						m_indicator.Clear();
 						query_rime(session_id, m_indicator);
-						m_composing_flag = m_indicator.IsComposing();
+						//m_composing_flag = m_indicator.IsComposing();
 					}
 					break;
 					case RimeCommandMessage::kCommandType_CommitCompositon:
 					{
 						//bool result = rime->commit_composition(session_id);
-						//std::unique_lock<std::shared_mutex> lock(m_rw_mutex);
+						//std::unique_lock<std::shared_mutex> lock(m_indicator_mutex);
 						//m_indicator.Clear();
 						//if (result) {
 						//	query_rime(session_id, m_indicator);
@@ -289,18 +313,19 @@ void RimeManager::RunRimeService()
 						//m_composing_flag = m_indicator.IsComposing();		
 						std::string commitStr = rime->get_input(session_id);
 						rime->clear_composition(session_id);
-						std::unique_lock<std::shared_mutex> lock(m_rw_mutex);
+						std::unique_lock<std::shared_mutex> lock(m_indicator_mutex);
 						m_indicator.Clear();
 						query_rime(session_id, m_indicator);
-						m_composing_flag = m_indicator.IsComposing();
+						//m_composing_flag = m_indicator.IsComposing();
 						if (commitStr.size()) {
 							std::wstring commitWStr = utf8string2wstring(commitStr);
 							for (wchar_t unicode : commitWStr) {
-								CharEvent charEvent(unicode);
-								MenuControls::GetSingleton()->ProcessCommonInputEvent(&charEvent);
+								/*CharEvent charEvent(unicode);
+								MenuControlsEx::GetSingleton()->ProcessCommonInputEvent(&charEvent);*/
+								SendUnicodeMessage(unicode);
 							}
 						}		
-					}
+					 }
 					break;
 					case RimeCommandMessage::kCommandType_SwitchAsciiMode:
 					{
@@ -329,11 +354,13 @@ void RimeManager::RunRimeService()
 						if (rime->get_status(session_id, &status)) {
 							if (status.is_simplified) {
 								rime->set_option(session_id, "zh_simp", False);
+								rime->set_option(session_id, "zh_tw", False);
 								rime->set_option(session_id, "zh_trad", True);
 								rime->set_option(session_id, "simplification", False);
 							}
 							else {
 								rime->set_option(session_id, "zh_simp", True);
+								rime->set_option(session_id, "zh_tw", False);
 								rime->set_option(session_id, "zh_trad", False);
 								rime->set_option(session_id, "simplification", True);
 							}
@@ -347,9 +374,7 @@ void RimeManager::RunRimeService()
 				}
 			}
 			break;
-			case RimeMessage::kMessageType_Option:
-				break;
-			case RimeMessage::kMessageType_Quit:
+			case MessageType::kMessageType_Option:
 				break;
 			default:
 				break;
@@ -363,7 +388,7 @@ void RimeManager::RunRimeService()
 
 void RimeManager::ClearComposition()
 {
-	PostCommand(RimeCommandMessage(RimeCommandMessage::kCommandType_ClearComposition));
+	PostCommand<RimeCommandMessage>(RimeCommandMessage::kCommandType_ClearComposition);
 }
 
 RimeManager& RimeManager::GetSingleton()
@@ -407,11 +432,17 @@ UInt32 RimeManager::TranslateKeycode(UInt32 keyCode)
 
 void RimeManager::QueryIndicator(RimeIndicator & indicator)
 {
-	std::shared_lock<std::shared_mutex> lock(m_rw_mutex);
+	std::shared_lock<std::shared_mutex> lock(m_indicator_mutex);
 	indicator = m_indicator;
 }
 
 bool RimeManager::IsRimeEnabled() const
 {
-	return rime::InputManager::GetSingleton()->IsTextInputEnabled();
+	return m_is_ready && RE::ControlMap::GetSingleton()->textEntryCount != 0;
+}
+
+bool RimeManager::IsRimeComposing()
+{
+	std::shared_lock<std::shared_mutex> lock(m_indicator_mutex);
+	return m_indicator.IsComposing();
 }

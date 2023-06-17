@@ -5,11 +5,11 @@ using namespace rime;
 ConfigLoader::ConfigLoader()
 {
 	UInt32 option;
-	if (GetConfigOption_UInt32("Settings", "CharacterSet", &option))
+	if (GetConfigOption_UInt32("Settings", "iCharacterSet", &option))
 		characterSet = option;
-	if (GetConfigOption_UInt32("Settings", "PosX", &option))
+	if (GetConfigOption_UInt32("Settings", "iPosX", &option))
 		uiOffsetX = option;
-	if (GetConfigOption_UInt32("Settings", "PosY", &option))
+	if (GetConfigOption_UInt32("Settings", "iPosY", &option))
 		uiOffsetY = option;
 }
 

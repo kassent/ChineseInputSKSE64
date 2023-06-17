@@ -1,8 +1,15 @@
-﻿  ChineseInput.vcxproj -> D:\SKSE64\skse64_2_00_17\src\skse64\x64\Release\ChineseInput.dll
-  D:\SKSE64\skse64_2_00_17\src\skse64\x64\Release\ChineseInput.dll
-  D:\SKSE64\skse64_2_00_17\src\skse64\x64\Release\ChineseInput.exp
-  D:\SKSE64\skse64_2_00_17\src\skse64\x64\Release\ChineseInput.iobj
-  D:\SKSE64\skse64_2_00_17\src\skse64\x64\Release\ChineseInput.ipdb
-  D:\SKSE64\skse64_2_00_17\src\skse64\x64\Release\ChineseInput.lib
-  D:\SKSE64\skse64_2_00_17\src\skse64\x64\Release\ChineseInput.pdb
+﻿  main.cpp
+     Creating library D:\SKSE64_VS2019\src\skse64\x64\Release\ChineseInput.lib and object D:\SKSE64_VS2019\src\skse64\x64\Release\ChineseInput.exp
+  Generating code
+  1 of 3849 functions (<0.1%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    11 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  ChineseInput.vcxproj -> D:\SKSE64_VS2019\src\skse64\x64\Release\ChineseInput.dll
+  D:\SKSE64_VS2019\src\skse64\x64\Release\ChineseInput.dll
+  D:\SKSE64_VS2019\src\skse64\x64\Release\ChineseInput.exp
+  D:\SKSE64_VS2019\src\skse64\x64\Release\ChineseInput.iobj
+  D:\SKSE64_VS2019\src\skse64\x64\Release\ChineseInput.ipdb
+  D:\SKSE64_VS2019\src\skse64\x64\Release\ChineseInput.lib
+  D:\SKSE64_VS2019\src\skse64\x64\Release\ChineseInput.pdb
   已复制         6 个文件。

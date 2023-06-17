@@ -4,82 +4,91 @@
 #include <shared_mutex>
 #include <atomic>
 #include <vector>
+#include <condition_variable>
+#include <queue>
+#include <mutex>
+#include <utility>
 #include <boost/dll/import.hpp>
 #include <boost/circular_buffer.hpp>
-#include "polym/Queue.hpp"
+#include "GameTypes.h"
+//
+class CommonMessageQueue;
 
-class GFxCharEvent;
 
-class RimeMessage : public PolyM::Msg {
-public:
-	enum 
-	{
-		kMessageType_Char,
-		kMessageType_Option,
-		kMessageType_Command,
-		kMessageType_Quit
-	};
-	RimeMessage(UInt32 type_) : type(type_) { }
-	virtual ~RimeMessage() = default;
-	RimeMessage(const RimeMessage&) = delete;
-	RimeMessage& operator=(const RimeMessage&) = delete;
 
-	virtual std::unique_ptr<Msg> move() override {
-		return std::unique_ptr<Msg>(new RimeMessage(type));
-	}
-	virtual UInt32 GetType() { return type; };
-
-private:
-	RimeMessage(RimeMessage&&) = default;
-	RimeMessage& operator=(RimeMessage&&) = default;
-	UInt32			type;
+enum class MessageType {
+	kMessageType_Char,
+	kMessageType_Option,
+	kMessageType_Command,
+	kMessageType_Invalid
 };
-
-class RimeCharMessage : public RimeMessage
+class AbstractMessage
 {
 public:
-	RimeCharMessage(UInt32 asciiCode_) : RimeMessage(kMessageType_Char), asciiCode(asciiCode_) { }
-
-	virtual ~RimeCharMessage() = default;
-	RimeCharMessage(const RimeCharMessage&) = delete;
-	RimeCharMessage& operator=(const RimeCharMessage&) = delete;
-
-	virtual std::unique_ptr<Msg> move() override {
-		return std::unique_ptr<Msg>(new RimeCharMessage(asciiCode));
-	}
+	AbstractMessage(MessageType a_messageType) : messageType_(a_messageType) { }
+	virtual ~AbstractMessage() = default;
+	MessageType type() const { return messageType_; }
+	//operator MessageType() { return messageType_; }
 private:
-	RimeCharMessage(RimeCharMessage&&) = default;
-	RimeCharMessage& operator=(RimeCharMessage&&) = default;
-public:
-	UInt32			asciiCode;
+	MessageType     messageType_ = MessageType::kMessageType_Invalid;
 };
 
-class RimeCommandMessage : public RimeMessage {
+class RimeCharMessage : public AbstractMessage
+{
 public:
 	enum {
+		kInvalidChar = -1
+	};
+	RimeCharMessage(UInt32 a_asciiCode) : AbstractMessage(MessageType::kMessageType_Char), asciiCode(a_asciiCode) { }
+	virtual ~RimeCharMessage() = default;
+public:
+	UInt32			 asciiCode;
+};
+
+class RimeCommandMessage : public AbstractMessage {
+public:
+	enum {
+		kCommandType_Invalid,
 		kCommandType_ClearComposition,
 		kCommandType_CommitCompositon,
 		kCommandType_SwitchAsciiMode,
 		kCommandType_SwitchFullShape,
-		kCommandType_SwitchSimplification
+		kCommandType_SwitchSimplification,
+		kCommandType_ExitLoop
 	};
-	RimeCommandMessage(UInt32 command_) : RimeMessage(kMessageType_Command), command(command_) { }
-
+	RimeCommandMessage(UInt32 a_command) : AbstractMessage(MessageType::kMessageType_Command), command(a_command) { }
 	virtual ~RimeCommandMessage() = default;
-	RimeCommandMessage(const RimeCommandMessage&) = delete;
-	RimeCommandMessage& operator=(const RimeCommandMessage&) = delete;
-
-	virtual std::unique_ptr<Msg> move() override {
-		return std::unique_ptr<Msg>(new RimeCommandMessage(command));
-	}
-private:
-	RimeCommandMessage(RimeCommandMessage&&) = default;
-	RimeCommandMessage& operator=(RimeCommandMessage&&) = default;
 public:
-	UInt32				command;
+	UInt32			command;
 };
 
+class CommonMessageQueue
+{
+public:
+	typedef std::unique_ptr<AbstractMessage> ContainerEntryType;
 
+	CommonMessageQueue();
+
+	~CommonMessageQueue() = default;
+
+	void Push(ContainerEntryType&& entry);
+
+	ContainerEntryType Pop();
+
+private:
+
+	static constexpr size_t MAX_QUEUE_SIZE = 128;
+	// Queue for the Msgs
+	std::queue<ContainerEntryType> queue_;
+
+	// Mutex to protect access to the queue
+	std::mutex  queueMutex_;
+
+	// Condition variable to wait for when getting Msgs from the queue
+	std::condition_variable queueCond_;
+};
+
+using RE::GFxCharEvent;
 class RimeManager
 {
 public:
@@ -115,12 +124,14 @@ public:
 	};
 
 	RimeManager();
-	void StartRimeService();
-	void PostCommand(RimeMessage && msg);
-	void QueryIndicator(RimeIndicator & indicator);
-	bool IsRimeEnabled() const;
-	inline bool IsRimeComposing() { return m_composing_flag; }
-	void ClearComposition();
+	void		StartRimeService();
+	void		QueryIndicator(RimeIndicator & indicator);
+	bool		IsRimeEnabled() const;
+	//inline bool IsRimeComposing() { return m_composing_flag; }
+	bool		IsRimeComposing();
+	void		ClearComposition();
+
+
 	static RimeManager& GetSingleton();
 	//************************************
 	// 将部分用于控制输入法的键盘DXScanCode转为输入法能够识别的unicode控制码。
@@ -132,6 +143,12 @@ public:
 	// Parameter: UInt32 keyCode
 	//************************************
 	static UInt32	TranslateKeycode(UInt32 keyCode);
+
+	template <class T, class ...Args>
+	void PostCommand(Args... args) {
+		m_command_queue.Push(std::make_unique<T>(std::forward<Args>(args)...));
+	}
+
 private:
 	void RunRimeService();
 
@@ -139,15 +156,17 @@ private:
 
 	void SendUnicodeMessage(UInt32 charCode);
 private:
+	static constexpr size_t UNICODE_BUFFER_SIZE = 0x20;
 	//GFxCharEvent
-	typedef boost::circular_buffer<GFxCharEvent> container_type;
+	typedef boost::circular_buffer<GFxCharEvent> circular_buffer_t;
 
-	mutable std::shared_mutex		m_rw_mutex;
+	mutable std::shared_mutex		m_indicator_mutex;
 	RimeIndicator					m_indicator;
-	PolyM::Queue					m_command_queue;
+	CommonMessageQueue				m_command_queue;
 	std::unique_ptr<std::thread>	m_rime_thread;
-	std::atomic_bool				m_composing_flag;
+	//std::atomic_bool				m_composing_flag;
+	std::atomic_bool				m_is_ready;
 	boost::dll::shared_library		m_rime_library;
-	container_type					m_unicode_buffer;
+	circular_buffer_t				m_unicode_buf;
 };
 

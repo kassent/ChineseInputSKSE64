@@ -1,64 +1,28 @@
 #ifndef POLYM_QUEUE_HPP
 #define POLYM_QUEUE_HPP
 
-#include "Msg.hpp"
 #include <memory>
 
-namespace PolyM {
-
-/** Msg ID for timeout message */
-const int MSG_TIMEOUT = -1;
-
-/**
- * Queue is a thread-safe message queue.
- * It supports one-way messaging and request-response pattern.
- */
-class Queue
+enum class MessageType {
+    kMessageType_Char,
+    kMessageType_Option,
+    kMessageType_Command,
+    kMessageType_Invalid
+};
+class AbstractMessage
 {
 public:
-    Queue();
-
-    ~Queue();
-
-    /**
-     * Put Msg to the end of the queue.
-     *
-     * @param msg Msg to put to the queue.
-     */
-    void put(Msg&& msg);
-
-    /**
-     * Get message from the head of the queue.
-     * Blocks until at least one message is available in the queue, or until timeout happens.
-     * If get() returns due to timeout, the returned Msg will have Msg ID MSG_TIMEOUT.
-     *
-     * @param timeoutMillis How many ms to wait for message until timeout happens.
-     *                      0 = wait indefinitely.
-     */
-    std::unique_ptr<Msg> get(int timeoutMillis = 0);
-
-    /**
-     * Make a request.
-     * Call will block until response is given with respondTo().
-     *
-     * @param msg Request message. Is put to the queue so it can be retrieved from it with get().
-     */
-    std::unique_ptr<Msg> request(Msg&& msg);
-
-    /**
-     * Respond to a request previously made with request().
-     *
-     * @param reqUid Msg UID of the request message.
-     * @param responseMsg Response message. The requester will receive it as the return value of
-     *                    request().
-     */
-    void respondTo(MsgUID reqUid, Msg&& responseMsg);
-
+    AbstractMessage(MessageType a_messageType) : messageType_(a_messageType) { }
+    virtual ~AbstractMessage() = default;
+    AbstractMessage(const AbstractMessage&) = delete;
+    AbstractMessage& operator=(const AbstractMessage&) = delete;
+    MessageType type() const { return messageType_; }
+    operator MessageType() { return messageType_; }
 private:
-    class Impl;
-    std::unique_ptr<Impl> impl_;
+    MessageType     messageType_ = MessageType::kMessageType_Invalid;
 };
 
-}
+typedef std::unique_ptr<AbstractMessage> ContainerEntryType;
+class CommonMessageQueue;
 
 #endif
